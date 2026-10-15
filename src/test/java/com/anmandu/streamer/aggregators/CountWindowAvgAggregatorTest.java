@@ -17,7 +17,7 @@ class CountWindowAvgAggregatorTest {
     private static final Instant T0 = Instant.parse("2026-09-24T15:00:00Z");
 
     private static Input input(String sensor, double value, Instant ts) {
-        return new Input(1, sensor, value, ts);
+        return new Input( sensor, value, ts);
     }
 
     @Test
