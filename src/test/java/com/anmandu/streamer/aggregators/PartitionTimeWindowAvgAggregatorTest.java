@@ -18,7 +18,7 @@ class PartitionTimeWindowAvgAggregatorTest {
     private static final Duration FOUR_SECONDS = Duration.ofSeconds(4);
 
     private static Input input(String sensor, double value, Instant ts) {
-        return new Input(1, sensor, value, ts);
+        return new Input(sensor, value, ts);
     }
 
     @Test

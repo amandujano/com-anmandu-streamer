@@ -2,13 +2,17 @@ package com.anmandu.streamer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.time.Duration;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+
+import com.anmandu.streamer.config.StreamerProperties;
+import com.anmandu.streamer.config.StreamerProperties.Sensor;
 
 /**
  * Characterization tests of current behavior: the application context starts
@@ -20,20 +24,8 @@ class SpringbootAppTest {
     @Autowired
     private ApplicationContext context;
 
-    @Value("${timer.sensorA}")
-    private long timerSensorA;
-
-    @Value("${timer.sensorB}")
-    private long timerSensorB;
-
-    @Value("${timer.sensorC}")
-    private long timerSensorC;
-
-    @Value("${timer.sensorD}")
-    private long timerSensorD;
-
-    @Value("${multiple.publishers}")
-    private boolean multiplePublishers;
+    @Autowired
+    private StreamerProperties properties;
 
     @Test
     void contextLoads() {
@@ -42,14 +34,21 @@ class SpringbootAppTest {
 
     @Test
     void bindsTimerPropertiesFromApplicationProperties() {
-        assertEquals(500L, timerSensorA);
-        assertEquals(400L, timerSensorB);
-        assertEquals(550L, timerSensorC);
-        assertEquals(1000L, timerSensorD);
+        assertEquals(4, properties.sensors().size());
+        assertEquals(Duration.ofMillis(500), properties.sensors().get(0).period());
+        assertEquals("SENSOR-A", properties.sensors().get(0).name());
+        assertEquals(Duration.ofMillis(400), properties.sensors().get(1).period());
+        assertEquals("SENSOR-B", properties.sensors().get(1).name());
+        assertEquals(Duration.ofMillis(550), properties.sensors().get(2).period());
+        assertEquals("SENSOR-C", properties.sensors().get(2).name());
+        assertEquals(Duration.ofMillis(1000), properties.sensors().get(3).period());
+        assertEquals("SENSOR-D", properties.sensors().get(3).name());
     }
 
     @Test
-    void bindsMultiplePublishersProperty() {
-        assertTrue(multiplePublishers);
+    void bindsTimerPropertiesFromApplicationPropertiesValidation() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            new Sensor("A", Duration.ZERO);
+        });
     }
 }
