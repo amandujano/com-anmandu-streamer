@@ -25,7 +25,6 @@ jobs:
       # Sets up JDK 25, using the 'temurin' distribution, and enables Maven caching to speed up the build process.
 
       - name: Build and Analyze
-        env:
         run: mvn -B verify -DskipTests
     # Uses Maven to build the application and run SonarQube analysis, skipping tests for faster builds.
 
