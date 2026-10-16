@@ -11,3 +11,4 @@ public class SpringbootApp {
         SpringApplication.run(SpringbootApp.class, args);
     }
 }
+KAFKA_ADMIN_PASSWORD='<contraseña de admin>' scripts/kafka-acls-remote.sh app test-topic test-group

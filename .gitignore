@@ -97,3 +97,5 @@ buildNumber.properties
 .codegraph
 
 CLAUDE.md
+# Generated TLS material for the Kafka listener
+certs/

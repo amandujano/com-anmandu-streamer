@@ -2,15 +2,35 @@ services:
   broker:
     image: apache/kafka:4.3.1
     restart: unless-stopped
+    # Writes the TLS keystore (PEM, passed as a base64 secret) to a file, then runs the stock entrypoint.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - printf '%s' "$$KAFKA_SERVER_PEM_B64" | base64 -d > /tmp/server.pem && exec /__cacert_entrypoint.sh /etc/kafka/docker/run
+    ports:
+      # Public SASL_SSL listener. Restrict it by source IP in the server firewall.
+      - "9094:9094"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: CONTROLLER://0.0.0.0:9093,INTERNAL://0.0.0.0:19092
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://broker:19092
+      KAFKA_LISTENERS: CONTROLLER://0.0.0.0:9093,INTERNAL://0.0.0.0:19092,EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://broker:19092,EXTERNAL://centauro.anmandu.com:9094
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:SASL_SSL
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      # TLS for the EXTERNAL listener (key + chain come from KAFKA_SERVER_PEM_B64)
+      KAFKA_SSL_KEYSTORE_TYPE: PEM
+      KAFKA_SSL_KEYSTORE_LOCATION: /tmp/server.pem
+      KAFKA_SERVER_PEM_B64: ${KAFKA_SERVER_PEM_B64}
+      # Authentication for the EXTERNAL listener (SASL/PLAIN, safe only because it runs over TLS)
+      KAFKA_LISTENER_NAME_EXTERNAL_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_LISTENER_NAME_EXTERNAL_PLAIN_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required user_admin="${SERVICE_PASSWORD_KAFKAADMIN}" user_app="${SERVICE_PASSWORD_KAFKAAPP}";'
+      # Authorization: deny by default. ANONYMOUS is only reachable through the
+      # non-published PLAINTEXT listeners (INTERNAL, CONTROLLER); EXTERNAL always requires SASL.
+      KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
+      KAFKA_SUPER_USERS: User:admin;User:ANONYMOUS
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: 'false'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
